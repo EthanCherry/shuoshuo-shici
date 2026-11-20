@@ -1,0 +1,11 @@
+{
+  "name": "shuoshuo-shici",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "说说英语 × 拾词 · 粤语/英语双语对话练习 + 词汇积累（局域网版）",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.js"
+  }
+}

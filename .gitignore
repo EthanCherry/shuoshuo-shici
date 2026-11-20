@@ -1,0 +1,9 @@
+node_modules/
+data/
+vendor/
+.env*
+*.qoder.site
+.qoder/
+dist/
+sites.json
+runtime/

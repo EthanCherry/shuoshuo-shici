@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f6f4">
+<meta name="description" content="说说英语 × 拾词：粤语/英语双语对话练习，随手积累词汇。">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+<title>说说拾词 · 双语对话 + 词汇积累</title>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <a class="brand" href="#" data-view="chat"><span class="brand-icon">说</span><span>说说拾词<small>粤语 · 英语 · 词汇</small></span></a>
+  <nav class="side-nav">
+    <button class="nav active" data-view="chat"><span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8 8.38 8.38 0 0 1 8.5-8.5 8.5 8.5 0 0 1 8.5 8.5Z"/></svg></span>对话练习</button>
+    <button class="nav" data-view="library"><span><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>生活语料</button>
+    <button class="nav" data-view="search"><span><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>查一个词</button>
+    <button class="nav" data-view="history"><span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>我的足迹<span class="nav-count" id="nav-count">0</span></button>
+    <button class="nav" data-view="review"><span><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></span>温故知新</button>
+    <button class="nav" data-view="settings"><span><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></span>偏好与数据</button>
+  </nav>
+  <div class="sidebar-bottom"><span class="tiny-dot"></span><span id="ai-status">AI 状态检测中…</span><p>局域网版 · 数据保存在本浏览器</p></div>
+</aside>
+
+<main>
+<header class="topbar"><span id="page-label">今天，想用粤语还是英语聊聊？</span><button class="quiet" data-view="settings" aria-label="偏好与数据"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></button></header>
+<div class="content">
+
+<!-- ===== 对话练习（首屏） ===== -->
+<section id="chat-view" class="view">
+  <div class="partner"><div class="avatar">说</div><div><strong>Say &amp; 阿粵 · 你的双语搭子</strong><small><span class="tiny-dot"></span> 英语 / 粤语随时切换 · 支持语音</small></div></div>
+  <div id="demo-banner" class="demo-banner" hidden>演示模式 · 离线预置语料 · 无需密钥 · 点下方示例体验完整流程</div>
+  <div id="messages" class="messages" aria-live="polite"></div>
+
+  <div id="practice" class="practice-card" hidden></div>
+
+  <div class="composer">
+    <div class="hold-row">
+      <button id="hold-yue" class="hold-btn yue" aria-label="长按说粤语"><span class="hold-icon"><svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></span><span class="hold-text">长按 · 粤语<small>按住说话，松开结束</small></span></button>
+      <button id="hold-en" class="hold-btn en" aria-label="长按说英语"><span class="hold-icon"><svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></span><span class="hold-text">长按 · 英语<small>中英夹杂都可以</small></span></button>
+    </div>
+    <div id="capture-status" class="capture-status" role="status"></div>
+    <div id="input-audio"></div>
+    <div id="demo-examples" class="demo-examples" hidden></div>
+    <div class="text-row">
+      <div class="lang-chips" role="group" aria-label="文字输入语言">
+        <button class="chip active" data-lang="en">英语·中英夹杂</button>
+        <button class="chip" data-lang="yue">粤语</button>
+      </div>
+      <textarea id="input" rows="2" placeholder="也可以打字：英语、中英夹杂，或粤语…" aria-label="你想表达的内容"></textarea>
+      <button id="organize" class="primary">整理表达 ↗</button>
+    </div>
+    <div class="composer-links">
+      <button class="link-btn" data-view="library">语料库找一句</button>
+      <button class="link-btn" id="generate-listen">生成回听</button>
+      <button class="link-btn" id="clear-chat">清空对话</button>
+    </div>
+    <p class="micro-note" id="composer-note">语音识别由浏览器提供（粤语需设备支持 zh-HK）。整理与回复由 DeepSeek 生成，请确认含义后再发送。</p>
+  </div>
+  <div id="listen-content"></div>
+</section>
+
+<!-- ===== 生活语料 ===== -->
+<section id="library-view" class="view" hidden>
+  <div class="eyebrow">LIFE EXPRESSIONS</div>
+  <h2>生活里想说的话，从这里开始。</h2>
+  <p class="subtext" id="corpus-count"></p>
+  <input id="search" type="search" placeholder="搜索场景、中文或英文…" aria-label="搜索语料">
+  <div id="categories" class="categories"></div>
+  <div id="library-list" class="library-list"></div>
+</section>
+
+<!-- ===== 查词 ===== -->
+<section id="search-view" class="view" hidden>
+  <div class="eyebrow">A LITTLE WORD, A BIGGER WORLD</div>
+  <h2>今天，遇见哪个词？</h2>
+  <p class="subtext">查懂一个词，也记住一次遇见。</p>
+  <form id="search-form">
+    <div class="search-box"><span class="search-symbol">⌕</span><input id="word-input" type="text" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="输入一个英文单词…" aria-label="英文单词" maxlength="60"><button id="search-submit" type="submit" aria-label="查询单词">↗</button></div>
+  </form>
+  <p id="search-error" role="alert" hidden></p>
+  <div id="result" aria-live="polite"></div>
+  <div id="welcome">
+    <div class="suggestions"><button data-word="encounter">encounter<span>偶然遇见 ↗</span></button><button data-word="serendipity">serendipity<span>意外之喜 ↗</span></button><button data-word="linger">linger<span>流连，停留 ↗</span></button></div>
+    <div id="recent-home"></div>
+  </div>
+</section>
+
+<!-- ===== 足迹 ===== -->
+<section id="history-view" class="view" hidden>
+  <div class="eyebrow">YOUR WORD TRAIL</div>
+  <h2>每个词，都有来处。</h2>
+  <p class="subtext">查过的词、对话里收藏的表达，都替你收好了。</p>
+  <div id="history-stats" class="stats"></div>
+  <div class="list-toolbar"><div class="segmented"><button data-sort="recent" class="selected">最近</button><button data-sort="frequent">反复遇见</button></div><input id="history-filter" placeholder="找一个词或表达" aria-label="筛选"></div>
+  <div id="history-list"></div>
+</section>
+
+<!-- ===== 复习 ===== -->
+<section id="review-view" class="view" hidden>
+  <div class="eyebrow">A MOMENT TO REMEMBER</div>
+  <h2>再见，也是温习。</h2>
+  <p class="subtext">花一点时间，和遇见过的词打个招呼。</p>
+  <div id="review-area"></div>
+</section>
+
+<!-- ===== 设置 ===== -->
+<section id="settings-view" class="view" hidden>
+  <div class="eyebrow">MAKE IT YOURS</div>
+  <h2>按你的习惯。</h2>
+  <div class="settings-card"><h3>朗读偏好</h3>
+    <label>英语口音<select id="accent"><option value="en-US">美式英语</option><option value="en-GB">英式英语</option></select></label>
+    <label>朗读速度<select id="rate"><option value="0.85">慢速</option><option value="1">正常</option></select></label>
+    <label>英语按钮识别语言<select id="en-asr"><option value="zh-CN">中英混说（推荐）</option><option value="en-US">纯英语</option></select></label>
+    <div class="test-row"><button class="outline" id="test-en">试听英语</button><button class="outline" id="test-yue">试听粤语</button></div>
+    <p class="muted">朗读使用浏览器设备语音。粤语需要设备装有 zh-HK 音色（Edge / 部分系统自带）；没有时会提示。云端更自然的粤语声线（Azure / MiniMax）留待上线版接入。</p>
+  </div>
+  <div class="settings-card"><h3>发音评分</h3>
+    <p class="muted" id="score-status">跟读目前提供「文字匹配度」参考，非真实发音评分。音素级发音评分（英语 en-US / 粤语 zh-HK，Azure Pronunciation Assessment）将在后续版本接入，此处先留占位。</p>
+  </div>
+  <div class="settings-card"><h3>对话记忆与用户画像</h3>
+    <p class="muted" id="memory-summary">读取中…</p>
+    <div id="memory-days" class="memory-days"></div>
+    <details id="profile-details"><summary>查看用户画像</summary><pre id="profile-md" class="profile-md"></pre></details>
+    <div class="test-row"><button class="outline" id="refresh-profile">刷新画像</button><button class="outline" id="export-memory">导出记忆</button></div>
+    <p class="muted">当天对话全量保留并优先送入 AI；跨天自动压缩为摘要归档；当你提到「昨天 / 上次 / 之前」时自动回溯压缩记忆。画像根据你的谈吐逐步更新，保存在服务端。</p>
+  </div>
+  <div class="settings-card"><h3>你的数据</h3>
+    <p>词汇、对话与笔记保存在当前浏览器。清理浏览器数据会删除记录，建议定期导出备份。</p>
+    <button class="outline" id="export-data">导出全部记录 ↓</button>
+    <label class="import-label">恢复备份<input type="file" id="import-data" accept="application/json,.json"></label>
+    <p class="muted">导入会与已有记录合并，保留较高查询次数。兼容拾词 v1 备份。</p>
+  </div>
+  <div class="settings-card"><h3>关于</h3>
+    <p>中文释义与音标来自 <a href="https://github.com/skywind3000/ECDICT" target="_blank" rel="noreferrer">ECDICT</a>（MIT），本地词库约 40 万词条。英文释义与例句来自 <a href="https://dictionaryapi.dev/" target="_blank" rel="noreferrer">Free Dictionary API</a>。整理、回复、粤拼与例句翻译由 DeepSeek 生成，仅供参考。</p>
+    <p class="muted">本应用为局域网原型：电脑运行服务，手机连同一 Wi-Fi 访问。成熟后再部署到云端并接入云 ASR / TTS / 发音评分。</p>
+  </div>
+</section>
+
+</div>
+<footer><span>说说拾词</span><span>把生活说成粤语和英语，把词一个个收好。</span></footer>
+</main>
+
+<nav class="mobile-nav">
+  <button class="nav active" data-view="chat"><span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8 8.38 8.38 0 0 1 8.5-8.5 8.5 8.5 0 0 1 8.5 8.5Z"/></svg></span><span>对话</span></button>
+  <button class="nav" data-view="library"><span><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span><span>语料</span></button>
+  <button class="nav" data-view="search"><span><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span>查词</span></button>
+  <button class="nav" data-view="history"><span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span>足迹</span></button>
+  <button class="nav" data-view="review"><span><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></span><span>复习</span></button>
+  <button class="nav" data-view="settings"><span><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></span><span>设置</span></button>
+</nav>
+</div>
+<div id="toast" role="status"></div>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
