@@ -32,7 +32,7 @@
 <!-- ===== 对话练习（首屏） ===== -->
 <section id="chat-view" class="view">
   <div class="partner"><div class="avatar">说</div><div><strong>Say &amp; 阿粵 · 你的双语搭子</strong><small><span class="tiny-dot"></span> 英语 / 粤语随时切换 · 支持语音</small></div></div>
-  <div id="demo-banner" class="demo-banner" hidden>演示模式 · 离线预置语料 · 无需密钥 · 点下方示例体验完整流程</div>
+  <div id="demo-banner" class="demo-banner" hidden>演示模式 · 预置语料 · 免密钥 · 点示例体验完整流程</div>
   <div id="messages" class="messages" aria-live="polite"></div>
 
   <div id="practice" class="practice-card" hidden></div>
@@ -58,7 +58,7 @@
       <button class="link-btn" id="generate-listen">生成回听</button>
       <button class="link-btn" id="clear-chat">清空对话</button>
     </div>
-    <p class="micro-note" id="composer-note">语音识别由浏览器提供（粤语需设备支持 zh-HK）。整理与回复由 DeepSeek 生成，请确认含义后再发送。</p>
+    <p class="micro-note" id="composer-note">语音识别靠浏览器（粤语需设备 zh-HK 音色）。AI 整理与回复，确认后再发送。</p>
   </div>
   <div id="listen-content"></div>
 </section>
@@ -119,7 +119,7 @@
     <p class="muted">朗读使用浏览器设备语音。粤语需要设备装有 zh-HK 音色（Edge / 部分系统自带）；没有时会提示。云端更自然的粤语声线（Azure / MiniMax）留待上线版接入。</p>
   </div>
   <div class="settings-card"><h3>发音评分</h3>
-    <p class="muted" id="score-status">跟读目前提供「文字匹配度」参考，非真实发音评分。音素级发音评分（英语 en-US / 粤语 zh-HK，Azure Pronunciation Assessment）将在后续版本接入，此处先留占位。</p>
+    <p class="muted" id="score-status">跟读只给文字匹配度，不是发音评分。音素级评分（en-US / zh-HK）后续接入。</p>
   </div>
   <div class="settings-card"><h3>对话记忆与用户画像</h3>
     <p class="muted" id="memory-summary">读取中…</p>

@@ -107,15 +107,14 @@ function syncControls() {
   $('#input').readOnly = locked;
   $$('.lang-chips .chip').forEach(c => c.disabled = locked);
   const rp = $('#record-practice'); if (rp) rp.disabled = locked;
-  const send = $('#send'); if (send) send.disabled = !$('#confirm')?.checked || !practiceAudio || locked;
-  const sendText = $('#send-text'); if (sendText) sendText.disabled = !$('#confirm')?.checked || locked;
+  const send = $('#send'); if (send) send.disabled = !$('#confirm')?.checked || locked;
 }
 function setBusy(on) { busy = on; syncControls(); }
 function setInputLang(lang) { inputLang = lang; $$('.lang-chips .chip').forEach(c => c.classList.toggle('active', c.dataset.lang === lang)); }
 
 /* ---------- 消息渲染 ---------- */
 function welcomeHTML() {
-  return `<div class="welcome"><h2>先说出来，<br>粤语英语慢慢来。</h2><p class="muted">长按下面的按钮说话，或打字。英语按钮支持中英夹杂；粤语按钮帮你整理成地道广东话。</p><div class="suggestions"><button data-example="我感觉自己感冒了，because 我一直流鼻涕" data-example-lang="en">我好像感冒了<span>中英夹杂 · 英语</span></button><button data-example="今日返工好攰，想早啲休息" data-example-lang="yue">今日返工好攰<span>粤语</span></button><button data-example="我周末想去看电影" data-example-lang="en">聊聊周末计划<span>英语</span></button></div></div>`;
+  return `<div class="welcome"><h2>先说出来，<br>粤语英语慢慢来。</h2><p class="muted">长按说话或打字。英语容忍中英夹杂；粤语整理成地道广东话。</p><div class="suggestions"><button data-example="我感觉自己感冒了，because 我一直流鼻涕" data-example-lang="en">我好像感冒了<span>中英夹杂 · 英语</span></button><button data-example="今日返工好攰，想早啲休息" data-example-lang="yue">今日返工好攰<span>粤语</span></button><button data-example="我周末想去看电影" data-example-lang="en">聊聊周末计划<span>英语</span></button></div></div>`;
 }
 function renderMessages() {
   const box = $('#messages');
@@ -202,34 +201,32 @@ function renderPractice() {
   card.innerHTML = `<span class="step-label">你的标准${langName}表达</span>
     <div class="english-output" lang="${yue ? 'yue-Hant-HK' : 'en'}">${esc(draft.text)}</div>
     ${draft.jyutping ? `<div class="jyutping">${esc(draft.jyutping)}</div>` : ''}
-    <div class="source-note">${draft.kind === 'llm' ? `${DEMO ? '演示整理' : 'DeepSeek 整理'} · 请确认含义与原意一致` : draft.kind === 'manual' ? '你手动填写的表达' : '离线语料整理 · 请对照原意确认'}</div>
+    <div class="source-note">${draft.kind === 'llm' ? `${DEMO ? '演示整理' : 'DeepSeek 整理'} · 确认意思没变` : draft.kind === 'manual' ? '你填写的表达' : '离线语料整理 · 确认意思没变'}</div>
     ${draft.note ? `<div class="notice">${esc(draft.note)}</div>` : ''}
     <details><summary>查看原话 / 修改表达</summary><p class="muted">${esc(draft.source)}</p><textarea id="edit-text" aria-label="修改表达">${esc(draft.text)}</textarea><button class="outline" id="save-edit">保存修改</button></details>
     <div class="audio-controls"><button class="outline" id="play-demo">▶ 听示范</button><button class="outline" id="play-slow">▷ 慢速听</button><button class="outline" id="stop-demo">■ 停止</button><button class="outline" id="collect-draft">☆ 收藏这句</button></div>
     <hr class="divider">
-    <div class="read-heading">试着用自己的声音说一遍（可选）</div>
+    <div class="read-heading">跟读一遍（可选）</div>
     <button class="record-btn ${yue ? '' : 'en'}" id="record-practice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>长按跟读 · ${langName}</button>
     <div id="practice-audio"></div>
     <div class="score" id="score" hidden></div>
     <label class="confirm-label"><input type="checkbox" id="confirm">这句${langName}表达了我的意思</label>
     <button class="primary full" id="send" disabled>发送 ↗</button>
-    <button class="outline full" id="send-text" disabled>跳过跟读，仅发送文字</button>
-    <p class="micro-note">跟读提供文字匹配度参考，非发音评分（音素级评分后续接入）。</p>`;
+    <p class="micro-note">跟读可选：只给文字匹配度参考，不是发音评分。</p>`;
   $('#play-demo').onclick = () => speak(draft.text, draft.lang);
   $('#play-slow').onclick = () => speak(draft.text, draft.lang, 0.75);
   $('#stop-demo').onclick = stopSpeech;
   $('#collect-draft').onclick = () => collectSentence(draft.text, draft.lang, draft.jyutping, draft.source);
   $('#save-edit').onclick = () => { const t = $('#edit-text').value.trim(); if (!t) { toast('请填写表达。'); return; } draft.text = t; draft.partial = false; practiceAudio = null; renderPractice(); toast('已更新，请重新确认；跟读需重新录制。'); };
   $('#confirm').onchange = syncControls;
-  $('#send').onclick = () => sendTurn(true);
-  $('#send-text').onclick = () => sendTurn(false);
+  $('#send').onclick = () => sendTurn();
   bindHold($('#record-practice'), () => beginCapture('practice', draft.lang, draft.lang === 'yue' ? 'zh-HK' : 'en-US'), endCapture);
   syncControls();
 }
 
 /* ---------- 发送与回复 ---------- */
-function sendTurn(withAudio) {
-  if (!draft || !$('#confirm').checked || capturing || busy || (withAudio && !practiceAudio)) return;
+function sendTurn() {
+  if (!draft || !$('#confirm').checked || capturing || busy) return;
   const turn = { lang: draft.lang, source: draft.source, text: draft.text, jyutping: draft.jyutping || '', reply: null, vocab: [], replySource: null, error: null, ts: Date.now() };
   turns.push(turn); const i = turns.length - 1;
   save(); renderMessages();
@@ -340,7 +337,7 @@ function showScore(spoken) {
   const match = score === null
     ? '<b>录音完成</b><span>本设备未返回识别文字，无法计算匹配度。可回听、重录。</span>'
     : `<span>跟读文字匹配度 · 非发音评分</span><strong>${score}%</strong><span>${score >= 90 ? '识别文字与目标基本一致。' : score >= 65 ? '部分文字不同，可听一遍再试。' : '差异较大，也可能是识别不准。'}</span><details><summary>查看识别文字</summary>${esc(spoken)}</details>`;
-  box.innerHTML = match + '<div class="placeholder">音素级发音评分（准确度 / 流利度 / 声调）即将上线 · 英语 en-US / 粤语 zh-HK</div>';
+  box.innerHTML = match + '<div class="placeholder">音素级发音评分待接入 · en-US / zh-HK</div>';
 }
 
 /* ---------- 词汇收藏 ---------- */
@@ -595,7 +592,7 @@ async function checkHealth() {
   const banner = $('#demo-banner'); if (banner) banner.hidden = !DEMO;
   const ex = $('#demo-examples');
   if (ex) { ex.hidden = !DEMO; if (DEMO && !ex.childElementCount) ex.innerHTML = DEMO_EXAMPLES.map((e, i) => `<button class="chip demo-chip" data-demo="${i}">${esc(e.label)}</button>`).join(''); }
-  const note = $('#composer-note'); if (note && DEMO) note.textContent = '演示模式：回复来自离线预置语料，仅供体验流程；语音识别仍由浏览器提供。部署配置密钥后切换为 DeepSeek 实时生成。';
+  const note = $('#composer-note'); if (note && DEMO) note.textContent = '演示模式：回复来自预置语料。配置密钥后切换 DeepSeek 实时生成。';
 }
 
 /* ============================ 记忆与画像 ============================ */
