@@ -43,7 +43,7 @@ npm start                    # 等价于 node server.mjs，Windows 也可双击 
 #    手机（同一 Wi-Fi）http://<电脑局域网IP>:4173
 ```
 
-运行测试（41 项，含记忆、接口安全与离线演示引擎断言）：
+运行测试（53 项，含记忆、接口安全、离线演示引擎与错句闭环断言）：
 
 ```bash
 npm test
@@ -64,7 +64,7 @@ public/            静态前端（同时是 Qoder Sites 部署产物）
 server.mjs         局域网 Node 服务：静态托管 + /api 代理（注入 x-local-user）
 api.mjs            DeepSeek 代理、输出校验、限流、记忆接口
 memory.mjs         分层记忆：今日全量 / 逐天压缩 / 过去回溯 / 画像
-tests/             node:test 测试（api + memory + demo）
+tests/             node:test 测试（api + memory + demo + quiz）
 docs/MEMORY.md     记忆系统设计说明
 ```
 

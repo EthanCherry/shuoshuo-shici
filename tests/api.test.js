@@ -158,3 +158,24 @@ test('listening rejects Chinese for English-only turns', async () => {
   const res = await post(handler, '/api/listening', { turns: [{ text: 'hello', reply: 'hi', lang: 'en' }] });
   assert.equal(res.status, 502);
 });
+
+test('translate passes whitelisted pattern and why', async () => {
+  const handler = makeHandler(() => upstream({ english: 'I really like coffee.', note: '', pattern: 'literal', patternWhy: '逐字直译：very like 换 really like。' }));
+  const data = await body(await post(handler, '/api/translate', { text: 'I very like coffee.' }));
+  assert.equal(data.pattern, 'literal');
+  assert.equal(data.patternWhy, '逐字直译：very like 换 really like。');
+});
+
+test('translate drops unknown pattern and clears why', async () => {
+  const handler = makeHandler(() => upstream({ english: 'I have a cold.', note: '', pattern: 'mandarin', patternWhy: '不该出现' }));
+  const data = await body(await post(handler, '/api/translate', { text: '我感冒了' }));
+  assert.equal(data.pattern, 'none');
+  assert.equal(data.patternWhy, '');
+});
+
+test('yue-translate keeps mandarin pattern', async () => {
+  const handler = makeHandler(() => upstream({ cantonese: '今日返工好攰。', jyutping: 'gam1 jat6 faan1 gung1 hou2 gui6.', note: '', pattern: 'mandarin', patternWhy: '普通话句式换粤语语序。' }));
+  const data = await body(await post(handler, '/api/yue-translate', { text: '今天上班很累' }));
+  assert.equal(data.pattern, 'mandarin');
+  assert.equal(data.patternWhy, '普通话句式换粤语语序。');
+});

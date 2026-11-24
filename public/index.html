@@ -95,6 +95,7 @@
   <h2>每个词，都有来处。</h2>
   <p class="subtext">查过的词、对话里收藏的表达，都替你收好了。</p>
   <div id="history-stats" class="stats"></div>
+  <div id="habit-card"></div>
   <div class="list-toolbar"><div class="segmented"><button data-sort="recent" class="selected">最近</button><button data-sort="frequent">反复遇见</button></div><input id="history-filter" placeholder="找一个词或表达" aria-label="筛选"></div>
   <div id="history-list"></div>
 </section>
@@ -103,7 +104,8 @@
 <section id="review-view" class="view" hidden>
   <div class="eyebrow">A MOMENT TO REMEMBER</div>
   <h2>再见，也是温习。</h2>
-  <p class="subtext">花一点时间，和遇见过的词打个招呼。</p>
+  <p class="subtext">花一点时间，和遇见过的词打个招呼。错句回放用你自己的原句出题。</p>
+  <div class="list-toolbar"><div class="segmented" id="review-mode"><button data-mode="words" class="selected">词卡</button><button data-mode="pairs">错句回放</button></div></div>
   <div id="review-area"></div>
 </section>
 

@@ -102,7 +102,7 @@ test('profile-refresh 返回画像 md', async () => {
 });
 
 test('DEMO_EXAMPLES 全部命中预置场景', async () => {
-  assert.equal(DEMO_EXAMPLES.length, 5);
+  assert.equal(DEMO_EXAMPLES.length, 7);
   for (const e of DEMO_EXAMPLES) {
     assert.ok(['en', 'yue'].includes(e.lang));
     const r = await demoHandle(e.lang === 'yue' ? 'yue-translate' : 'translate', { text: e.text });
@@ -112,4 +112,22 @@ test('DEMO_EXAMPLES 全部命中预置场景', async () => {
 
 test('不支持的 action 抛错', async () => {
   await assert.rejects(() => demoHandle('nope', {}), /不支持/);
+});
+
+test('demo translate 蹩脚英语标逐字直译', async () => {
+  const r = await demoHandle('translate', { text: 'I very like drink hot coffee.' });
+  assert.equal(r.pattern, 'literal');
+  assert.ok(r.patternWhy);
+});
+
+test('demo translate 纯中文不标习惯', async () => {
+  const r = await demoHandle('translate', { text: '我好像感冒了，有点发烧。' });
+  assert.equal(r.pattern, 'none');
+  assert.equal(r.patternWhy, '');
+});
+
+test('demo yue-translate 普通话源标 mandarin', async () => {
+  const r = await demoHandle('yue-translate', { text: '我今天上班很累，想早点休息。' });
+  assert.equal(r.pattern, 'mandarin');
+  assert.ok(r.patternWhy);
 });

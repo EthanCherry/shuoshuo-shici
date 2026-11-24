@@ -22,9 +22,26 @@ export const DEMO_EXAMPLES = [
   { label: '想喝咖啡', text: '我想喝一杯热咖啡。', lang: 'en' },
   { label: '昨晚看电影', text: '我昨晚看了一部很好看的电影。', lang: 'en' },
   { label: '准备考试', text: '我最近在准备英语考试，有点紧张。', lang: 'en' },
+  { label: '蹩脚英语', text: 'I very like drink hot coffee.', lang: 'en' },
+  { label: '普通话→粤语', text: '我今天上班很累，想早点休息。', lang: 'yue' },
 ];
 
 const hasCJK = t => /[㐀-鿿]/.test(t);
+
+/* 演示模式的习惯判定：离线规则，仅供体验 */
+function enPattern(text) {
+  const t = String(text).toLowerCase();
+  if (/\bvery (like|good|happy|tired|cold)\b|\bi very\b|\bopen (the|my) (light|computer|tv|air)\b|\balthough\b.*\bbut\b/.test(t)) return { pattern: 'literal', patternWhy: '逐字直译：英语不说 very like，换 really like 或 love。' };
+  if (/\bhow to say\b|\bwhat mean\b|\bi am agree\b|\bmore better\b|\byesterday i go\b/.test(t)) return { pattern: 'order', patternWhy: '语序句式：疑问与过去式按英语习惯重组。' };
+  return { pattern: 'none', patternWhy: '' };
+}
+function yuePattern(text) {
+  const t = String(text);
+  if (/[a-zA-Z]/.test(t)) return { pattern: 'latin', patternWhy: '字母代字：d/ge/la 还原成 啲/嘅/喇。' };
+  if (/[的了是很吗]/.test(t) && !/[嘅咗係唔]/.test(t)) return { pattern: 'mandarin', patternWhy: '普通话句式：换成 嘅/咗/係 与粤语语序。' };
+  if (/[嘅咗係]/.test(t) && !/[啦咯喎㗎]/.test(t)) return { pattern: 'particle', patternWhy: '语气词：补 啦/喎/ 更像口语。' };
+  return { pattern: 'none', patternWhy: '' };
+}
 
 function match(text) {
   const t = String(text || '').toLowerCase();
@@ -95,13 +112,13 @@ export async function demoHandle(action, data = {}) {
   const sc = match(text);
   switch (action) {
     case 'translate': {
-      if (sc) return { english: sc.en, note: '', provider: 'demo', model: 'offline-demo' };
-      if (!hasCJK(text)) return { english: cleanEn(text), note: '演示模式：已轻度整理。', provider: 'demo', model: 'offline-demo' };
-      return { english: roughEn(text), note: '演示模式为离线粗译，仅供体验；配置密钥后为准确翻译。', provider: 'demo', model: 'offline-demo' };
+      if (sc) return { english: sc.en, note: '', ...enPattern(text), provider: 'demo', model: 'offline-demo' };
+      if (!hasCJK(text)) return { english: cleanEn(text), note: '演示模式：已轻度整理。', pattern: 'none', patternWhy: '', provider: 'demo', model: 'offline-demo' };
+      return { english: roughEn(text), note: '演示模式为离线粗译，仅供体验；配置密钥后为准确翻译。', pattern: 'none', patternWhy: '', provider: 'demo', model: 'offline-demo' };
     }
     case 'yue-translate': {
-      if (sc) return { cantonese: sc.yue, jyutping: sc.jyutping, note: '', provider: 'demo', model: 'offline-demo' };
-      return { cantonese: String(text).trim(), jyutping: '', note: '演示模式：未命中预置粤语语料，返回原句。', provider: 'demo', model: 'offline-demo' };
+      if (sc) return { cantonese: sc.yue, jyutping: sc.jyutping, note: '', ...yuePattern(text), provider: 'demo', model: 'offline-demo' };
+      return { cantonese: String(text).trim(), jyutping: '', note: '演示模式：未命中预置粤语语料，返回原句。', pattern: 'none', patternWhy: '', provider: 'demo', model: 'offline-demo' };
     }
     case 'reply': {
       if (sc) return { reply: sc.replyEn, vocab: sc.vocabEn, provider: 'demo', model: 'offline-demo', memoryUsed: { today: demoMemory().today.turns.length, recalled: [], profile: true } };

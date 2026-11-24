@@ -1,5 +1,6 @@
 import { corpus, categories, stats, extract, replyFor, wordMatch, suggestExpressions } from './corpus.js';
 import { demoHandle, DEMO_EXAMPLES } from './demo.mjs';
+import { PATTERN_LABELS, cleanPattern, eligiblePair, makeQuiz, orderPairs, gradePair, habitTop } from './quiz.mjs';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -16,8 +17,9 @@ function read() {
       words: Object.assign(Object.create(null), x.words && typeof x.words === 'object' && !Array.isArray(x.words) ? x.words : {}),
       prefs: { ...defaultPrefs, ...x.prefs },
       chats: Array.isArray(x.chats) ? x.chats : [],
+      pairs: Array.isArray(x.pairs) ? x.pairs.filter(p => p && typeof p.source === 'string' && typeof p.text === 'string' && Number.isFinite(p.ts)).slice(-200) : [],
     };
-  } catch { return { words: Object.create(null), prefs: { ...defaultPrefs }, chats: [] }; }
+  } catch { return { words: Object.create(null), prefs: { ...defaultPrefs }, chats: [], pairs: [] }; }
 }
 let db = read();
 let turns = db.chats.slice(-200);
@@ -169,10 +171,10 @@ async function organize() {
   try {
     if (inputLang === 'yue') {
       const r = await requestAI('yue-translate', { text: input });
-      draft = { lang: 'yue', source: input, text: r.cantonese, jyutping: r.jyutping || '', note: r.note || '', kind: 'llm' };
+      draft = { lang: 'yue', source: input, text: r.cantonese, jyutping: r.jyutping || '', note: r.note || '', pattern: cleanPattern(r.pattern, 'yue'), patternWhy: r.patternWhy || '', kind: 'llm' };
     } else {
       const r = await requestAI('translate', { text: input });
-      draft = { lang: 'en', source: input, text: r.english, jyutping: '', note: r.note || '', kind: 'llm' };
+      draft = { lang: 'en', source: input, text: r.english, jyutping: '', note: r.note || '', pattern: cleanPattern(r.pattern, 'en'), patternWhy: r.patternWhy || '', kind: 'llm' };
     }
     renderPractice();
   } catch (error) {
@@ -182,7 +184,7 @@ async function organize() {
     $('#manual-organize').onclick = () => {
       const t = prompt(inputLang === 'yue' ? '输入你确认的粤语表达：' : '输入你确认的英文表达：');
       if (!t || !t.trim()) return;
-      draft = { lang: inputLang, source: input, text: t.trim(), jyutping: '', note: '', kind: 'manual' };
+      draft = { lang: inputLang, source: input, text: t.trim(), jyutping: '', note: '', pattern: 'none', patternWhy: '', kind: 'manual' };
       renderPractice();
     };
   } finally { setBusy(false); card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
@@ -191,7 +193,7 @@ function organizeLocal() {
   const input = $('#input').value.trim(); if (!input) return;
   const result = extract(input);
   if (result.kind === 'unknown' || !result.text) { toast('离线语料没有覆盖这句，请用AI整理或手动填写。'); return; }
-  draft = { lang: 'en', source: input, text: result.text, jyutping: '', note: '', kind: result.kind, partial: result.partial };
+  draft = { lang: 'en', source: input, text: result.text, jyutping: '', note: '', pattern: 'none', patternWhy: '', kind: result.kind, partial: result.partial };
   renderPractice();
 }
 function renderPractice() {
@@ -202,6 +204,7 @@ function renderPractice() {
     <div class="english-output" lang="${yue ? 'yue-Hant-HK' : 'en'}">${esc(draft.text)}</div>
     ${draft.jyutping ? `<div class="jyutping">${esc(draft.jyutping)}</div>` : ''}
     <div class="source-note">${draft.kind === 'llm' ? `${DEMO ? '演示整理' : 'DeepSeek 整理'} · 确认意思没变` : draft.kind === 'manual' ? '你填写的表达' : '离线语料整理 · 确认意思没变'}</div>
+    ${draft.pattern && draft.pattern !== 'none' ? `<div class="notice habit">习惯 · ${esc(PATTERN_LABELS[draft.pattern] || draft.pattern)}${draft.patternWhy ? ` · ${esc(draft.patternWhy)}` : ''}</div>` : ''}
     ${draft.note ? `<div class="notice">${esc(draft.note)}</div>` : ''}
     <details><summary>查看原话 / 修改表达</summary><p class="muted">${esc(draft.source)}</p><textarea id="edit-text" aria-label="修改表达">${esc(draft.text)}</textarea><button class="outline" id="save-edit">保存修改</button></details>
     <div class="audio-controls"><button class="outline" id="play-demo">▶ 听示范</button><button class="outline" id="play-slow">▷ 慢速听</button><button class="outline" id="stop-demo">■ 停止</button><button class="outline" id="collect-draft">☆ 收藏这句</button></div>
@@ -227,8 +230,12 @@ function renderPractice() {
 /* ---------- 发送与回复 ---------- */
 function sendTurn() {
   if (!draft || !$('#confirm').checked || capturing || busy) return;
-  const turn = { lang: draft.lang, source: draft.source, text: draft.text, jyutping: draft.jyutping || '', reply: null, vocab: [], replySource: null, error: null, ts: Date.now() };
+  const turn = { lang: draft.lang, source: draft.source, text: draft.text, jyutping: draft.jyutping || '', pattern: draft.pattern || 'none', patternWhy: draft.patternWhy || '', reply: null, vocab: [], replySource: null, error: null, ts: Date.now() };
   turns.push(turn); const i = turns.length - 1;
+  if (eligiblePair(turn.lang, turn.source, turn.text)) {
+    db.pairs.push({ ts: turn.ts, lang: turn.lang, source: turn.source, text: turn.text, pattern: turn.pattern, patternWhy: turn.patternWhy, asked: 0, wrong: 0, streak: 0, due: 0 });
+    db.pairs = db.pairs.slice(-200);
+  }
   save(); renderMessages();
   $('#input').value = ''; $('#input-audio').innerHTML = ''; practiceAudio = null; draft = null;
   $('#practice').hidden = true; $('#practice').innerHTML = '';
@@ -528,13 +535,20 @@ function langTag(r) { if (r.lang === 'yue') return '<span class="lang-tag yue">�
 function renderHistory() {
   const words = Object.values(db.words), total = words.reduce((s, r) => s + r.count, 0), repeated = words.filter(r => r.count > 1).length;
   $('#history-stats').innerHTML = [[words.length, '遇见的词句'], [total, '累计遇见'], [repeated, '反复遇见']].map(([n, t]) => `<div class="stat"><strong>${n}</strong><span>${t}</span></div>`).join('');
+  const h = habitTop(db.pairs);
+  $('#habit-card').innerHTML = h.items.length ? `<div class="habit-card"><h3>${h.scope === 'week' ? '近 7 天' : '你'}的中式习惯</h3>${h.items.map(g => `<div class="habit-row"><div><span class="pattern-chip">${esc(g.label)}</span><b>${g.count} 次</b></div><p class="muted">${esc(g.example.source)} → ${esc(g.example.text)}</p></div>`).join('')}<button class="outline" id="habit-review">去错句回放 ↗</button></div>` : '';
   const q = $('#history-filter').value.trim().toLowerCase();
   const list = words.filter(r => r.word.toLowerCase().includes(q) || (r.entry?.translation || '').toLowerCase().includes(q)).sort((a, b) => sort === 'frequent' ? b.count - a.count || b.last - a.last : b.last - a.last);
   $('#history-list').innerHTML = list.length ? list.map(r => `<button class="history-row" data-open="${esc(r.word)}"><div><strong>${esc(r.word)}${langTag(r)}</strong><small>${esc(r.entry?.translation || r.entry?.example || '')}</small></div><div class="row-meta"><b>${r.count} 次</b>${ago(r.last)}</div></button>`).join('') : `<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div>${words.length ? '没有匹配的记录。' : '还没有足迹。查一个词，或在对话里收藏一个表达。'}</div>`;
 }
-let reviewQueue = [], reviewIndex = 0;
-function startReview() { reviewQueue = Object.values(db.words).filter(r => !r.due || r.due <= Date.now()).sort((a, b) => b.count - a.count || a.last - b.last).slice(0, 5).map(r => r.word); reviewIndex = 0; renderReview(); }
+let reviewQueue = [], reviewIndex = 0, reviewMode = 'words';
+function syncReviewMode() { $$('#review-mode button').forEach(x => x.classList.toggle('selected', x.dataset.mode === reviewMode)); }
+function startReview() {
+  if (reviewMode === 'pairs') { reviewQueue = orderPairs(db.pairs).map(p => p.ts); reviewIndex = 0; renderReview(); return; }
+  reviewQueue = Object.values(db.words).filter(r => !r.due || r.due <= Date.now()).sort((a, b) => b.count - a.count || a.last - b.last).slice(0, 5).map(r => r.word); reviewIndex = 0; renderReview();
+}
 function renderReview() {
+  if (reviewMode === 'pairs') { renderPairQuiz(); return; }
   const all = Object.keys(db.words).length;
   if (!reviewQueue.length) { $('#review-area').innerHTML = `<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 1.5"/></svg></div>${all ? '今天还没有到期的词，给记忆一点时间。' : '先查几个词或收藏表达，之后来这里回顾。'}<br><button class="outline" data-view="search">去查一个词 ↗</button>${all ? '<br><button class="outline" id="review-anyway">现在回顾最近的词</button>' : ''}</div>`; return; }
   if (reviewIndex >= reviewQueue.length) { $('#review-area').innerHTML = `<div class="review-card"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></div><h3>又熟悉了一点。</h3><p class="muted">这次回顾了 ${reviewQueue.length} 个词句。</p><button class="outline" data-view="chat">回到对话 ↗</button></div>`; return; }
@@ -553,6 +567,37 @@ function grade(g) {
   r.due = Date.now() + (g === 0 ? 10 / 1440 : g === 1 ? 1 : [1, 3, 7, 14, 30, 60][r.level]) * 86400000;
   r.lastReview = Date.now(); save(); reviewIndex++; renderReview();
 }
+function renderPairQuiz() {
+  const area = $('#review-area');
+  if (!reviewQueue.length) { area.innerHTML = `<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 1.5"/></svg></div>还没有可回放的错句。<br>对话里发一句中英夹杂或普通话，会自动入册。<br><button class="outline" data-view="chat">去对话 ↗</button></div>`; return; }
+  if (reviewIndex >= reviewQueue.length) { area.innerHTML = `<div class="review-card"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></div><h3>又回放了一遍。</h3><p class="muted">这次回放了 ${reviewQueue.length} 句你自己的话。</p><button class="outline" data-view="chat">回到对话 ↗</button></div>`; return; }
+  const p = db.pairs.find(x => x.ts === reviewQueue[reviewIndex]);
+  if (!p) { reviewIndex++; renderPairQuiz(); return; }
+  const quiz = makeQuiz(p);
+  area.innerHTML = `<div class="review-card quiz"><span class="eyebrow">${reviewIndex + 1} / ${reviewQueue.length} · ${quiz.prompt}</span>
+    <div class="quiz-opts">${quiz.options.map((o, i) => `<button class="quiz-opt" data-opt="${i}" lang="${p.lang === 'yue' ? 'yue-Hant-HK' : 'en'}">${esc(o.text)}</button>`).join('')}</div>
+    <div id="quiz-reveal" hidden></div></div>`;
+  $$('#review-area .quiz-opt').forEach(btn => { btn.onclick = () => answerQuiz(p, quiz, Number(btn.dataset.opt)); });
+}
+function answerQuiz(p, quiz, i) {
+  const reveal = $('#quiz-reveal'); if (!reveal.hidden) return;
+  const ok = quiz.options[i].correct;
+  $$('#review-area .quiz-opt').forEach((b, j) => { b.disabled = true; if (quiz.options[j].correct) b.classList.add('correct'); else if (j === i) b.classList.add('wrong'); });
+  const label = PATTERN_LABELS[p.pattern] || '';
+  reveal.hidden = false;
+  reveal.innerHTML = `<div class="quiz-verdict ${ok ? 'ok' : 'no'}">${ok ? '选对了。' : '自然版是另一句。'}</div>
+    <div class="review-meaning" lang="${p.lang === 'yue' ? 'yue-Hant-HK' : 'en'}">${esc(p.text)}${sayButton(p.text, p.lang)}</div>
+    ${label ? `<span class="pattern-chip">习惯 · ${esc(label)}</span>` : ''}${p.patternWhy ? `<p class="muted">${esc(p.patternWhy)}</p>` : ''}
+    <p class="muted">你当时：${esc(p.source)}</p>
+    <div class="review-buttons"><button data-pgrade="0">还是模糊</button><button data-pgrade="1">记住了</button></div>`;
+  $$('#quiz-reveal [data-pgrade]').forEach(b => {
+    b.onclick = () => {
+      const idx = db.pairs.findIndex(x => x.ts === p.ts);
+      if (idx >= 0) db.pairs[idx] = gradePair(p, b.dataset.pgrade === '1');
+      save(); reviewIndex++; renderPairQuiz();
+    };
+  });
+}
 
 /* ============================ 设置 / 数据 ============================ */
 $('#accent').onchange = e => { db.prefs.accent = e.target.value; save(); };
@@ -561,7 +606,7 @@ $('#en-asr').onchange = e => { db.prefs.enAsr = e.target.value; save(); };
 $('#test-en').onclick = () => speak('Hello, nice to meet you.', 'en');
 $('#test-yue').onclick = () => speak('你好，好開心見到你。', 'yue');
 $('#export-data').onclick = () => {
-  const blob = new Blob([JSON.stringify({ version: 2, exported: new Date().toISOString(), words: db.words, prefs: db.prefs, chats: turns }, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ version: 2, exported: new Date().toISOString(), words: db.words, prefs: db.prefs, chats: turns, pairs: db.pairs }, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `shuoshuo-shici-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); toast('备份已导出。');
 };
 $('#import-data').onchange = async e => {
@@ -578,6 +623,16 @@ $('#import-data').onchange = async e => {
       else { old.count = Math.max(old.count, clean.count); old.first = Math.min(old.first, clean.first); old.last = Math.max(old.last, clean.last); old.events = [...new Set([...old.events, ...clean.events])].sort((a, b) => a - b).slice(-500); if (!old.note) old.note = clean.note; n++; }
     }
     if (Array.isArray(data.chats) && !turns.length) turns = data.chats.slice(-200);
+    if (Array.isArray(data.pairs)) {
+      const seen = new Set(db.pairs.map(p => p.ts + '|' + p.source));
+      for (const p of data.pairs) {
+        if (!p || typeof p.source !== 'string' || typeof p.text !== 'string' || !Number.isFinite(p.ts) || seen.has(p.ts + '|' + p.source)) continue;
+        const lang = p.lang === 'yue' ? 'yue' : 'en';
+        db.pairs.push({ ts: p.ts, lang, source: p.source.slice(0, 1500), text: p.text.slice(0, 2000), pattern: cleanPattern(p.pattern, lang), patternWhy: typeof p.patternWhy === 'string' ? p.patternWhy.slice(0, 80) : '', asked: Number.isSafeInteger(p.asked) ? p.asked : 0, wrong: Number.isSafeInteger(p.wrong) ? p.wrong : 0, streak: Number.isSafeInteger(p.streak) ? p.streak : 0, due: Number.isFinite(p.due) ? p.due : 0 });
+        seen.add(p.ts + '|' + p.source);
+      }
+      db.pairs = db.pairs.slice(-200);
+    }
     save(); updateCounts(); renderMessages(); toast(`已合并 ${n} 条记录`);
   } catch { toast('无法导入，请选择有效的备份文件。'); }
   finally { e.target.value = ''; }
@@ -625,6 +680,7 @@ $('#export-memory').onclick = async () => {
 document.addEventListener('click', e => {
   const b = e.target.closest('button,a.brand'); if (!b) return;
   if (b.matches('a.brand')) { e.preventDefault(); setView('chat'); return; }
+  if (b.id === 'habit-review') { reviewMode = 'pairs'; syncReviewMode(); setView('review'); return; }
   if (b.dataset.view) { setView(b.dataset.view); return; }
   if (b.dataset.word) { lookup(b.dataset.word); return; }
   if (b.dataset.open) { openRecord(b.dataset.open); return; }
@@ -640,6 +696,7 @@ document.addEventListener('click', e => {
 });
 $('#search-form').addEventListener('submit', e => { e.preventDefault(); $('#word-input').blur(); lookup($('#word-input').value); });
 $('#history-filter').addEventListener('input', renderHistory);
+$$('#review-mode button').forEach(b => { b.onclick = () => { reviewMode = b.dataset.mode; syncReviewMode(); startReview(); }; });
 $('#organize').onclick = () => organize();
 $('#input').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); organize(); } });
 bindHold($('#hold-yue'), () => beginCapture('input', 'yue', 'zh-HK'), endCapture);

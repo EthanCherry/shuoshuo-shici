@@ -262,6 +262,26 @@ textarea:focus{outline:none;border-color:var(--accent)}
 .review-buttons button{flex:1;max-width:120px;border:1px solid var(--line);border-radius:var(--radius);padding:12px;font-size:14px;background:var(--card);color:var(--ink)}
 .review-buttons button[data-grade="2"]{background:var(--accent-soft);border-color:transparent;color:var(--accent);font-weight:600}
 .review-buttons button[data-grade="0"]{background:var(--soft);border-color:transparent;color:var(--muted)}
+.notice.habit{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.habit-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:14px 0;box-shadow:var(--shadow)}
+.habit-card h3{font-size:15px;margin:0 0 10px}
+.habit-row{padding:8px 0;border-top:1px solid var(--line)}
+.habit-row:first-of-type{border-top:none}
+.habit-row>div{display:flex;align-items:center;gap:8px}
+.habit-row b{font-size:13px;color:var(--muted)}
+.habit-row p{margin:6px 0 0;font-size:13px}
+.habit-card .outline{margin-top:10px}
+.pattern-chip{display:inline-block;background:var(--sand);color:var(--sand-ink);border-radius:5px;padding:2px 8px;font-size:12px;font-weight:600}
+.quiz-opts{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.quiz-opt{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);padding:14px;font-size:15px;text-align:left;color:var(--ink);word-break:break-word}
+.quiz-opt:disabled{cursor:default}
+.quiz-opt.correct{background:var(--accent-soft);border-color:transparent;color:var(--accent);font-weight:600}
+.quiz-opt.wrong{background:#f6e7e3;border-color:transparent;color:var(--danger)}
+.quiz-verdict{font-weight:600;margin:16px 0 8px}
+.quiz-verdict.ok{color:var(--accent)}
+.quiz-verdict.no{color:var(--danger)}
+#quiz-reveal .muted{font-size:13px;margin:8px 0}
+#quiz-reveal .pattern-chip{margin-top:4px}
 
 /* ===== settings ===== */
 .settings-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px}
